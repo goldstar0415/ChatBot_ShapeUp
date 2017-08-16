@@ -6,7 +6,8 @@ import {
   View,
   TouchableOpacity,
   TextInput,
-  Animated
+  Animated,
+  Image
 } from 'react-native';
 
 import {GiftedChat, Actions, Bubble, InputToolbar} from 'react-native-gifted-chat';
@@ -18,12 +19,12 @@ import styles from './styles.js';
 
 const trades = ["Carpenter"];
 const years = ["3+", "5+", "10+", "20+"]
-const skills = ["Acoustical ceilings, Woodwork, Drywall, House framing, Hardware, Concrete foams"]
+const skills = ["Acoustical ceilings", "Woodwork", "Drywall", "House framing", "Hardware", "Concrete foams"]
 
 class Chatbot extends Component {
   constructor(props) {
     super(props);
-    this.animation = new Animated.Value(0);
+    // this.animation = new Animated.Value(0);
     this.state = {
       messages: [],
       loadEarlier: false,
@@ -34,7 +35,13 @@ class Chatbot extends Component {
       lastname: "",
       name: "",
       email: "",
-      password: ""
+      password: "",
+      lastposition: "",
+      skills:[],
+      zipcode: "",
+      firstchoice: "",
+      travel: "",
+      animation: new Animated.Value(-50)
     };
 
     ApiAi.setConfiguration(
@@ -70,6 +77,12 @@ class Chatbot extends Component {
     }, error=>{
       console.log(error);
     });
+    Animated.timing(
+      this.state.animation,{
+        toValue: 0,
+        duration: 1000
+      }
+    ).start();
   }
 
   componentWillUnmount() {
@@ -95,6 +108,38 @@ class Chatbot extends Component {
   setPasswordText(event) {
     let password = event.nativeEvent.text;
     this.setState({password})
+  }
+
+  setLastPositionText(event) {
+    let lastposition = event.nativeEvent.text;
+    this.setState({lastposition})
+  }
+
+  setZipcodeText(event) {
+    let zipcode = event.nativeEvent.text;
+    this.setState({zipcode})
+  }
+
+  setFirstChoiceText(event) {
+    let firstchoice = event.nativeEvent.text;
+    this.setState({firstchoice})
+  }
+
+  setTravelText(event) {
+    let travel = event.nativeEvent.text;
+    this.setState({travel})
+  }
+
+  addSkill (skill) {
+    this.setState({
+      skills: [ ...this.state.skills, skill ]
+    })
+  }
+
+  removeSkill (skill) {
+    this.setState({
+      skills: this.state.skills.filter(item => item !== skill)
+    })
   }
 
   // API.ai integration
@@ -148,6 +193,22 @@ class Chatbot extends Component {
   onReceive(text) {
     if (this.state.footerType == "edbrooks.email"){
       text = "My password is " + text;
+    } else if (this.state.footerType == "edbrooks.password") {
+      text = "my trade is " + text;
+    } else if (this.state.footerType == "edbrooks.trade") {
+      text = (text=="Yes")?text+", I am on it":text+", I am not on it";
+    } else if (this.state.footerType == "edbrooks.union") {
+      text = "I have " + text + " years of experiences"
+    } else if (this.state.footerType == "edbrooks.experiences") {
+      text = "I worked on " + text
+    } else if (this.state.footerType == "edbrooks.position") {
+      text = "My skills are " + text
+    } else if (this.state.footerType == "edbrooks.skillset") {
+      text = "My zipcode is " + text
+    } else if (this.state.footerType == "edbrooks.zip") {
+      text = "My first choice is " + text + " City"
+    } else if (this.state.footerType == "edbrooks.firstchoice") {
+      text = "I'd like to go to " + text
     }
     ApiAi.requestQuery(text, result=>{
       var msgtxt = result.result.fulfillment.speech;
@@ -167,35 +228,58 @@ class Chatbot extends Component {
           footerType: footer
         };
       });
+      Animated.timing(
+        this.state.animation,{
+          toValue: 0,
+          duration: 1000
+        }
+      ).start(); 
     }, error=>{
       console.log(error);
-    });  
+    });
   }
 
   sendCustomMsg(txt){
-    var messages = [];
-    var message = {};
-    message.text = txt;
-    message.user = {_id: 1};
-    message._id = Math.round(Math.random() * 1000000);
-    message.createdAt = new Date();
-    messages.push(message);
-    this.onSend(messages);
+    var _this = this
+    var offset = -50
+    console.log("****** Footer ****  => ", this.state.footerType)
+    switch(this.state.footerType){
+      case 'edbrooks.union':
+        offset = -76
+        break
+      case 'edbrooks.position':
+        offset = -176
+        break
+      case 'edbrooks.password':
+        offset = -76
+        break
+      default:
+        offset = -50
+    }
+    Animated.timing(
+      this.state.animation,{
+        toValue: offset,
+        duration: 1000
+      }
+    ).start(function onComplete(){
+      var messages = [];
+      var message = {};
+      message.text = txt;
+      message.user = {_id: 1};
+      message._id = Math.round(Math.random() * 1000000);
+      message.createdAt = new Date();
+      messages.push(message);
+      _this.onSend(messages);
+    });
   }
 
   // Render Custom Footer View
   renderFooter(props) {
-    console.log(this.state.footerType)
-    const move_Y = this.animation.interpolate({
-      inputRange: [0,30],
-      outputRange:[0, 60]
-    });
+
     switch (this.state.footerType){
       case 'welcome':
         return (
-          <Animated.View style={[styles.footerContainer, {transform: [{
-            translateY: move_Y
-          }]}]}>
+          <Animated.View style={[styles.footerContainer, {marginBottom: this.state.animation}]}>
             <TouchableOpacity style={styles.activeButtonContainer} onPress={()=>this.sendCustomMsg("Yes")}>
               <Text style={styles.ready}>Yes</Text>
             </TouchableOpacity>
@@ -203,9 +287,7 @@ class Chatbot extends Component {
         );
       case 'edbrooks.ready':
         return (
-          <Animated.View style={[styles.footerContainer, {transform: [{
-            translateY: move_Y
-          }]}]}>
+          <Animated.View style={[styles.footerContainer, {marginBottom: this.state.animation}]}>
             <TextInput 
               placeholder="Name" 
               style={styles.textInputContainer} 
@@ -227,9 +309,7 @@ class Chatbot extends Component {
         )
       case 'edbrooks.name':
         return (
-          <Animated.View style={[styles.footerContainer, {transform: [{
-            translateY: move_Y
-          }]}]}>
+          <Animated.View style={[styles.footerContainer, {marginBottom: this.state.animation}]}>
             <TextInput 
               placeholder="Email" 
               style={styles.textInputContainer} 
@@ -252,9 +332,7 @@ class Chatbot extends Component {
         )
       case 'edbrooks.email':
         return (
-          <Animated.View style={[styles.footerContainer, {transform: [{
-            translateY: move_Y
-          }]}]}>
+          <Animated.View style={[styles.footerContainer, {marginBottom: this.state.animation}]}>
             <TextInput 
               placeholder="Password" 
               style={styles.textInputContainer} 
@@ -265,6 +343,156 @@ class Chatbot extends Component {
             {
               this.state.password!="" && this.state.password.length>5?(
                 <TouchableOpacity style={styles.activeButtonContainer} onPress={()=>this.sendCustomMsg(this.state.password)}>
+                  <Text style={styles.ready}>Send</Text>
+                </TouchableOpacity>
+              ):(
+                <TouchableOpacity style={styles.ButtonContainer}>
+                  <Text style={styles.ready}>Send</Text>
+                </TouchableOpacity>
+              )
+            }
+          </Animated.View>
+        )
+      case 'edbrooks.password':
+        return (
+          <Animated.View style={[styles.frameContainer, {marginBottom: this.state.animation}]}>
+            <View style={styles.multiButtonsContainer}>
+            {
+              trades.map((trade, i)=>
+                <TouchableOpacity key={i} style={styles.multiButtonContainer} onPress={()=>this.sendCustomMsg(trade)}>
+                  <Text style={styles.multiButton}>{trade}</Text>
+                </TouchableOpacity>
+              )
+            }
+            </View>
+          </Animated.View>
+        )
+      case 'edbrooks.trade':
+        return (
+          <Animated.View style={[styles.footerContainer, {marginBottom: this.state.animation}]}>
+            <TouchableOpacity style={styles.activeButtonContainer} onPress={()=>this.sendCustomMsg("Yes")}>
+              <Text style={styles.ready}>Yes</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.activeButtonContainer} onPress={()=>this.sendCustomMsg("No")}>
+              <Text style={styles.ready}>No</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        )
+      case 'edbrooks.union':
+        return (
+          <Animated.View style={[styles.frameContainer, {marginBottom: this.state.animation}]}>
+            <View style={styles.multiButtonsContainer}>
+            {
+              years.map((year, i)=>
+                <TouchableOpacity key={i} style={styles.multiButtonContainer} onPress={()=>this.sendCustomMsg(year)}>
+                  <Text style={styles.multiButton}>{year}</Text>
+                </TouchableOpacity>
+              )
+            }
+            </View>
+          </Animated.View>
+        )
+      case 'edbrooks.experiences':
+        return (
+          <Animated.View style={[styles.footerContainer, {marginBottom: this.state.animation}]}>
+            <TextInput 
+              placeholder="Recent Position" 
+              style={styles.textInputContainer} 
+              onChange={this.setLastPositionText.bind(this)} 
+              value={this.state.lastposition}
+            />
+            {
+              this.state.lastposition!=""?(
+                <TouchableOpacity style={styles.activeButtonContainer} onPress={()=>this.sendCustomMsg(this.state.lastposition)}>
+                  <Text style={styles.ready}>Send</Text>
+                </TouchableOpacity>
+              ):(
+                <TouchableOpacity style={styles.ButtonContainer}>
+                  <Text style={styles.ready}>Send</Text>
+                </TouchableOpacity>
+              )
+            }
+          </Animated.View>
+        )
+      case 'edbrooks.position':
+        return (
+          <Animated.View style={[styles.frameContainer, {marginBottom: this.state.animation}]}>
+            <TouchableOpacity onPress={()=>this.state.skills.length>0?this.sendCustomMsg(this.state.skills.join(",")):null}>
+              <Image source={require('../../resources/images/check.png')} style={styles.checkBtn}/>
+            </TouchableOpacity>
+            <View style={styles.multiButtonsContainer}>
+            {
+              skills.map((skill, i)=>
+                this.state.skills.find(selectedItem => skill === selectedItem)?(
+                  <TouchableOpacity key={i} style={styles.activeMultiButtonContainer} onPress={()=>this.removeSkill(skill)}>
+                    <Text style={styles.multiButton}>{skill}</Text>
+                  </TouchableOpacity>
+                ):(
+                   <TouchableOpacity key={i} style={styles.multiButtonContainer} onPress={()=>this.addSkill(skill)}>
+                    <Text style={styles.multiButton}>{skill}</Text>
+                  </TouchableOpacity>
+                )
+              )
+            }
+            </View>
+          </Animated.View>
+        )
+      case 'edbrooks.skillset':
+        return (
+          <Animated.View style={[styles.footerContainer, {marginBottom: this.state.animation}]}>
+            <TextInput 
+              placeholder="Zipcode" 
+              style={styles.textInputContainer} 
+              onChange={this.setZipcodeText.bind(this)} 
+              value={this.state.zipcode}
+            />
+            {
+              this.state.zipcode!=""?(
+                <TouchableOpacity style={styles.activeButtonContainer} onPress={()=>this.sendCustomMsg(this.state.zipcode)}>
+                  <Text style={styles.ready}>Send</Text>
+                </TouchableOpacity>
+              ):(
+                <TouchableOpacity style={styles.ButtonContainer}>
+                  <Text style={styles.ready}>Send</Text>
+                </TouchableOpacity>
+              )
+            }
+          </Animated.View>
+        )
+      case 'edbrooks.zip':
+        return (
+          <Animated.View style={[styles.footerContainer, {marginBottom: this.state.animation}]}>
+            <TextInput 
+              placeholder="First choice" 
+              style={styles.textInputContainer} 
+              onChange={this.setFirstChoiceText.bind(this)} 
+              value={this.state.firstchoice}
+            />
+            {
+              this.state.firstchoice!=""?(
+                <TouchableOpacity style={styles.activeButtonContainer} onPress={()=>this.sendCustomMsg(this.state.firstchoice)}>
+                  <Text style={styles.ready}>Send</Text>
+                </TouchableOpacity>
+              ):(
+                <TouchableOpacity style={styles.ButtonContainer}>
+                  <Text style={styles.ready}>Send</Text>
+                </TouchableOpacity>
+              )
+            }
+          </Animated.View>
+        )
+      case 'edbrooks.firstchoice':
+        return (
+          <Animated.View style={[styles.footerContainer, {marginBottom: this.state.animation}]}>
+            <TextInput 
+              placeholder="Travel" 
+              style={styles.textInputContainer} 
+              onChange={this.setTravelText.bind(this)} 
+              value={this.state.travel}
+            />
+            {
+              this.state.travel!=""?(
+                <TouchableOpacity style={styles.activeButtonContainer} onPress={()=>this.sendCustomMsg(this.state.travel)}>
                   <Text style={styles.ready}>Send</Text>
                 </TouchableOpacity>
               ):(
