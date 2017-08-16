@@ -8,36 +8,47 @@ import {
 var styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F5FCFF',
+    flexDirection: 'column',
+    backgroundColor:'gray'
   },
-  welcome: {
-    fontSize: 20,
-    textAlign: 'center',
-    margin: 10,
-  },
-  instructions: {
-    textAlign: 'center',
-    color: '#333333',
-    marginBottom: 5,
+  messageContainer:{
+    flex: 1
   },
   footerContainer: {
     backgroundColor: 'white',
+    justifyContent: 'flex-end',
+    flexDirection: 'row'
   },
-  readyContainer:{
+  textInputContainer: {
+    flex: 1,
+    margin: 10,
+    borderRadius: 5,
+    borderColor: 'gray',
+    borderWidth: 1,
+    fontSize: 14
+  },
+  ButtonContainer:{
+    height: 30,
+    width: 60,
+    borderRadius: 5,
+    backgroundColor: 'gray',
+    flexDirection: 'column',
     justifyContent: 'center',
-    height: 60,
+    marginTop: 10,
+    marginBottom: 10,
+    marginRight: 10
   },
-  readyButtonContainer:{
-    position: 'absolute',
+  activeButtonContainer:{
     height: 30,
     width: 60,
     borderRadius: 5,
     backgroundColor: '#00A0DC',
     flexDirection: 'column',
     justifyContent: 'center',
-    left: Dimensions.get('window').width - 70
+    marginTop: 10,
+    marginBottom: 10,
+    marginRight: 10
+
   },
   ready: {
     color: 'white',
