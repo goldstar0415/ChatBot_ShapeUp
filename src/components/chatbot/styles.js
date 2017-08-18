@@ -100,6 +100,50 @@ var styles = StyleSheet.create({
     height: 40,
     right: 10,
     top: -20
+  },
+  passwordDialog: {
+    backgroundColor: 'white',
+    justifyContent: 'center',
+    flexDirection: 'column',
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  passwordNotice:{
+    fontSize: 18,
+    fontWeight: 'bold',
+    paddingTop: 20,
+    textAlign: 'center',
+  },
+  passwordInput: {
+    flex: 0.8,
+    height: 30,
+    marginTop: 30,
+    borderRadius: 5,
+    borderColor: 'gray',
+    borderWidth: 1,
+    fontSize: 14,
+    paddingLeft: 8,
+  },
+  confirmInput: {
+    flex: 0.8,
+    height: 30,
+    marginTop: 10,
+    borderRadius: 5,
+    borderColor: 'gray',
+    borderWidth: 1,
+    fontSize: 14,
+    paddingLeft: 8,
+  },
+  infoLabel: {
+    flex: 0.8,
+    height: 20,
+    marginTop: 10,
+    fontSize: 12,
+    color: 'red'
+  },
+  okButton: {
+    marginTop: 15,
+    marginBottom: 25,
   }
 });
 
