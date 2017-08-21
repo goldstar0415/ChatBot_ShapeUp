@@ -8,7 +8,8 @@ import {
   TextInput,
   Animated,
   Image,
-  Platform
+  Platform,
+  Easing
 } from 'react-native';
 
 import {GiftedChat, Actions, Bubble, InputToolbar} from 'react-native-gifted-chat';
@@ -45,6 +46,7 @@ let firebaseApp = firebase.initializeApp(config);
 class Chatbot extends Component {
   constructor(props) {
     super(props);
+    this.spinValue = new Animated.Value(0)
     this.state = {
       messages: [],
       footerType:"",
@@ -63,6 +65,7 @@ class Chatbot extends Component {
       animation: new Animated.Value(-50),
       passwordVisible: false,
       profileVisible: false,
+      logoVisible: false,
       errorText: "",
       phone: "",
       years: "",
@@ -189,6 +192,10 @@ class Chatbot extends Component {
 
   //Create Firebase Account and Store user data
   async signUp() {
+    this.setState({
+      logoVisible: true
+    })
+    this.spin()
     console.log("******* Account Info *********", this.state.email, this.state.password)
     try {
       await firebaseApp.auth().createUserWithEmailAndPassword(this.state.email, this.state.password).then((res)=>{
@@ -209,9 +216,15 @@ class Chatbot extends Component {
           experiences: this.state.years,
           travels: this.state.travels
         }).then((res)=>{
+          this.sendMessage("Notice you don’t have a photo yet. Click user avatar on dialog and upload it now. If you've done once or want to skip it, click CONNECT button")
           this.setState({
-            profileVisible:true,
+            logoVisible: false,
           })
+          setTimeout(()=>{
+            this.setState({
+              profileVisible:true
+            })
+          }, 1000)
         })
       });
       console.log("Account created")
@@ -265,6 +278,19 @@ class Chatbot extends Component {
         .catch(error => console.log(error))
       }
     })
+  }
+
+  // Spin logo
+  spin () {
+    this.spinValue.setValue(0)
+    Animated.timing(
+      this.spinValue,
+      {
+        toValue: 1,
+        duration: 2000,
+        easing: Easing.linear
+      }
+    ).start(() => this.spin())
   }
 
   // API.ai integration
@@ -757,6 +783,10 @@ class Chatbot extends Component {
   render() {
     const extra = (this.state.travels.length>0)? `However Ed’s willing to travel from ${this.state.city} to ${this.state.travels}.`:"";
     const info = `${this.state.firstname} has developed skills over ${this.state.years} within companies like ${this.state.lastposition}, where he recently worked. ${this.state.firstname} specializes in ${this.state.skills}. Seeking a position within ${this.state.city} City. ${extra}`;
+    const spin = this.spinValue.interpolate({
+      inputRange: [0, 1],
+      outputRange: ['0deg', '360deg']
+    })
     return (
       <View style={styles.container}>
         <GiftedChat
@@ -825,6 +855,17 @@ class Chatbot extends Component {
             </TouchableOpacity>
           </View>
         </Modal>
+
+        <Modal isVisible={this.state.logoVisible}>
+          <View  style={{justifyContent: 'center', alignItems:'center'}}>
+            <Animated.Image
+              style={{
+                width: 40,
+                height: 50,
+                transform: [{rotate: spin}] }}
+                source={require('../../resources/images/logo.png')}/>
+          </View>
+        </Modal>   
       </View>
     );
   }
