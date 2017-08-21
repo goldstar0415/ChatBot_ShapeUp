@@ -26,7 +26,7 @@ class App extends Component {
         <Scene key="root">
           <Scene initial key="start" hideNavBar component={Start}/>
           <Scene key="chatbot" component={Chatbot} navigationBarStyle={styles.navBar} titleStyle={styles.navTitle} leftButtonIconStyle={styles.leftButton} title="Chatbot"/>
-          <Scene key="login" component={Login}/>
+          <Scene key="login" hideNavBar component={Login}/>
         </Scene>
       </Router>
     );

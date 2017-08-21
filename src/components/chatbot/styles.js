@@ -144,6 +144,45 @@ var styles = StyleSheet.create({
   okButton: {
     marginTop: 15,
     marginBottom: 25,
+  },
+  userBtn: {
+    width: 80,
+    height: 80,
+    marginTop: 20,
+    borderRadius: 40
+  },
+  username:{
+    fontWeight: 'bold',
+    fontSize: 18,
+    marginTop: 30
+  },
+  union: {
+    fontSize: 18,
+    // marginTop: 5
+  },
+  userinfo: {
+    fontSize: 15,
+    marginTop:20,
+    marginLeft: 20,
+    marginRight: 20,
+    textAlign: 'center'
+  },
+  connectContainer: {
+    backgroundColor: '#00A0DC',
+    borderRadius: 5,
+    height: 40,
+    width: 120,
+    marginBottom: 30,
+    marginTop: 20,
+    alignItems: 'center',
+    flexDirection:'row',
+    justifyContent:'center'
+  },
+  connect: {
+    color:'white',
+    fontSize: 15,
+    fontWeight: 'bold',
+    textAlign: 'center'
   }
 });
 

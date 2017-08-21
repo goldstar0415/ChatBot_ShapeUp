@@ -7,14 +7,17 @@ import {
   TouchableOpacity,
   TextInput,
   Animated,
-  Image
+  Image,
+  Platform
 } from 'react-native';
 
 import {GiftedChat, Actions, Bubble, InputToolbar} from 'react-native-gifted-chat';
 import ApiAi from "react-native-api-ai";
-import Modal from 'react-native-modal'
+import Modal from 'react-native-modal';
+var ImagePicker = require('react-native-image-picker');
+import RNFetchBlob from 'react-native-fetch-blob'
 
-import * as Animatable from 'react-native-animatable';
+import * as firebase from 'firebase';
 
 import styles from './styles.js';
 
@@ -24,18 +27,31 @@ const skills = ["Acoustical ceilings", "Woodwork", "Drywall", "House framing", "
 const locations = ["New York", "New Jersey", "Connecticut"]
 const travels = ["New Jersey", "Connecticut"]
 
+const Blob = RNFetchBlob.polyfill.Blob
+const fs = RNFetchBlob.fs
+window.XMLHttpRequest = RNFetchBlob.polyfill.XMLHttpRequest
+window.Blob = Blob
+
+var config = {
+  apiKey: "AIzaSyDxfAF78Du5KUIsc2ttXJReJyJ5ocPFH7c",
+  authDomain: "edbrooks-2eebf.firebaseapp.com",
+  databaseURL: "https://edbrooks-2eebf.firebaseio.com",
+  projectId: "edbrooks-2eebf",
+  storageBucket: "edbrooks-2eebf.appspot.com",
+  messagingSenderId: "1091522655846"
+};
+let firebaseApp = firebase.initializeApp(config);
+
 class Chatbot extends Component {
   constructor(props) {
     super(props);
-    // this.animation = new Animated.Value(0);
     this.state = {
       messages: [],
-      loadEarlier: false,
-      typingText: null,
-      isLoadingEarlier: false,
       footerType:"",
       firstname: "",
       lastname: "",
+      union: false,
+      trade: "",
       email: "",
       password: "",
       confirm: "",
@@ -43,12 +59,15 @@ class Chatbot extends Component {
       skills:[],
       zipcode: "",
       firstchoice: "",
-      travel: "",
+      travels: [],
       animation: new Animated.Value(-50),
       passwordVisible: false,
       profileVisible: false,
       errorText: "",
-      phone: ""
+      phone: "",
+      years: "",
+      city: "",
+      avatar: require('../../resources/images/user.png')
     };
 
     ApiAi.setConfiguration(
@@ -73,7 +92,7 @@ class Chatbot extends Component {
           user: {
             _id: 2,
             name: 'Pam',
-            // avatar: 'https://facebook.github.io/react/img/logo_og.png',
+            avatar: require('../../resources/images/logo.png'),
           },
         }),
       };
@@ -156,6 +175,98 @@ class Chatbot extends Component {
     })
   }
 
+  addTravel (travel) {
+    this.setState({
+      travels: [ ...this.state.travels, travel ]
+    })
+  }
+
+  removeTravel (travel) {
+    this.setState({
+      travels: this.state.travels.filter(item => item !== travel)
+    })
+  }
+
+  //Create Firebase Account and Store user data
+  async signUp() {
+    console.log("******* Account Info *********", this.state.email, this.state.password)
+    try {
+      await firebaseApp.auth().createUserWithEmailAndPassword(this.state.email, this.state.password).then((res)=>{
+        console.log("****** User ID *******",res.uid)
+        this.setState({
+          userId: res.uid
+        })
+        const userDataPath = "/users/"+res.uid
+        firebaseApp.database().ref(userDataPath).set({
+          firstname: this.state.firstname,
+          lastname: this.state.lastname,
+          email: this.state.email,
+          trade: this.state.trade,
+          union: this.state.union,
+          phone: this.state.phone,
+          city: this.state.lastposition,
+          skills: this.state.skills,
+          experiences: this.state.years,
+          travels: this.state.travels
+        }).then((res)=>{
+          this.setState({
+            profileVisible:true,
+          })
+        })
+      });
+      console.log("Account created")
+    } catch (error) {
+      console.log(error.toString())
+    }
+  }
+
+  uploadImage(uri, mime = 'application/octet-stream') {
+    return new Promise((resolve, reject) => {
+      const uploadUri = Platform.OS === 'ios' ? uri.replace('file://', '') : uri
+      let uploadBlob = null
+
+      const imageRef = firebaseApp.storage().ref('images').child(this.state.userId+".png")
+
+      fs.readFile(uploadUri, 'base64')
+        .then((data) => {
+          return Blob.build(data, { type: `${mime};BASE64` })
+        })
+        .then((blob) => {
+          uploadBlob = blob
+          return imageRef.put(blob, { contentType: mime })
+        })
+        .then(() => {
+          uploadBlob.close()
+          return imageRef.getDownloadURL()
+        })
+        .then((url) => {
+          resolve(url)
+        })
+        .catch((error) => {
+          reject(error)
+      })
+    })
+  }
+
+  //Choose Image from Camera or Library
+  chooseAvatar() {
+    var options = {
+      title: 'Select Avatar',
+      storageOptions:{
+        skipBackup: true,
+        path: 'images'
+      }
+    }
+
+    ImagePicker.showImagePicker(options, (response)=>{
+      if (!response.error && !response.didCancel) {
+        this.uploadImage(response.uri)
+        .then(url => { this.setState({avatar: {uri:url}}) })
+        .catch(error => console.log(error))
+      }
+    })
+  }
+
   // API.ai integration
   onSend(messages = []) {
     this.setState((previousState) => {
@@ -177,22 +288,35 @@ class Chatbot extends Component {
   }
 
   onReceive(text) {
+    var _this = this
     var tmp = text
     if (this.state.footerType == "edbrooks.ready"){
       text = "My first name is " + text;
     } else if (this.state.footerType == "edbrooks.firstname") {
       text = "My last name is " + text;
     } else if (this.state.footerType == "edbrooks.email") {
+      this.setState({
+        trade: text
+      })
       text = "my trade is " + text;
     } else if (this.state.footerType == "edbrooks.trade") {
+      this.setState({
+        union: text=="Yes"
+      })
       text = (text=="Yes")?text+", I am on it":text+", I am not on it";
     } else if (this.state.footerType == "edbrooks.union") {
+      this.setState({
+        years: text
+      })
       text = "I have " + text + " of experiences"
     } else if (this.state.footerType == "edbrooks.experiences") {
       text = "My skills are " + text
     } else if (this.state.footerType == "edbrooks.password") {
       text = text=="Yes"?text+", I am interested in":text+", I am not interested in"
     } else if (this.state.footerType == "edbrooks.asklocation") {
+      this.setState({
+        city: text
+      })
       text = "My first choice is " + text + " City"
     } else if (this.state.footerType == "edbrooks.firstchoice") {
       text = text=="Yes"?"Yes, I'll travel":"No, travel"
@@ -243,6 +367,9 @@ class Chatbot extends Component {
         this.setState({
           footerType: footer
         })
+        if (this.state.footerType == 'edbrooks.profile') {
+          this.signUp();
+        }
         Animated.timing(
           this.state.animation,{
             toValue: 0,
@@ -252,6 +379,7 @@ class Chatbot extends Component {
       }, error=>{
         console.log(error);
       });
+      
     }
   }
 
@@ -316,6 +444,12 @@ class Chatbot extends Component {
     if (this.state.confirm == "") {
       this.setState({
         errorText:"Please confirm your password"
+      });
+      return;
+    }
+    if (this.state.password.length<6) {
+      this.setState({
+        errorText:"Password should be at least 6 characters"
       });
       return;
     }
@@ -570,12 +704,21 @@ class Chatbot extends Component {
       case 'edbrooks.travel':
         return (
           <Animated.View style={[styles.frameContainer, {marginBottom: this.state.animation}]}>
+            <TouchableOpacity onPress={()=>this.state.travels.length>0?this.sendCustomMsg(this.state.travels.join(",")):null}>
+              <Image source={require('../../resources/images/check.png')} style={styles.checkBtn}/>
+            </TouchableOpacity>
             <View style={styles.multiButtonsContainer}>
             {
               travels.map((travel, i)=>
-                <TouchableOpacity key={i} style={styles.multiButtonContainer} onPress={()=>this.sendCustomMsg(travel)}>
-                  <Text style={styles.multiButton}>{travel}</Text>
-                </TouchableOpacity>
+                this.state.travels.find(selectedItem => travel === selectedItem)?(
+                  <TouchableOpacity key={i} style={styles.activeMultiButtonContainer} onPress={()=>this.removeTravel(travel)}>
+                    <Text style={styles.multiButton}>{travel}</Text>
+                  </TouchableOpacity>
+                ):(
+                   <TouchableOpacity key={i} style={styles.multiButtonContainer} onPress={()=>this.addTravel(travel)}>
+                    <Text style={styles.multiButton}>{travel}</Text>
+                  </TouchableOpacity>
+                )
               )
             }
             </View>
@@ -612,6 +755,8 @@ class Chatbot extends Component {
   }
 
   render() {
+    const extra = (this.state.travels.length>0)? `However Ed’s willing to travel from ${this.state.city} to ${this.state.travels}.`:"";
+    const info = `${this.state.firstname} has developed skills over ${this.state.years} within companies like ${this.state.lastposition}, where he recently worked. ${this.state.firstname} specializes in ${this.state.skills}. Seeking a position within ${this.state.city} City. ${extra}`;
     return (
       <View style={styles.container}>
         <GiftedChat
@@ -661,6 +806,22 @@ class Chatbot extends Component {
             </View>
             <TouchableOpacity onPress={()=>this.confirmPassword()}>
               <Text style={styles.okButton}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </Modal>
+
+        <Modal isVisible={this.state.profileVisible}>
+          <View style={styles.passwordDialog}>
+            <TouchableOpacity onPress={()=>this.chooseAvatar()}>
+              <Image source={this.state.avatar} style={styles.userBtn}/> 
+            </TouchableOpacity>
+            <Text style={styles.username}>{this.state.firstname} {this.state.lastname}</Text>
+            {
+              this.state.union?<Text style={styles.union}>Union {this.state.trade}</Text>:null
+            }
+            <Text style={styles.userinfo}>{info}</Text>
+            <TouchableOpacity style={styles.connectContainer} onPress={()=>this.confirmPassword()}>
+              <Text style={styles.connect}>CONNECT</Text>
             </TouchableOpacity>
           </View>
         </Modal>

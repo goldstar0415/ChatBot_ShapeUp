@@ -7,11 +7,13 @@
 		"test": "jest"
 	},
 	"dependencies": {
+		"firebase": "^4.3.0",
 		"react": "16.0.0-alpha.12",
 		"react-native": "0.47.1",
-		"react-native-animatable": "^1.2.3",
 		"react-native-api-ai": "^1.0.2",
+		"react-native-fetch-blob": "^0.10.8",
 		"react-native-gifted-chat": "^0.2.5",
+		"react-native-image-picker": "^0.26.4",
 		"react-native-modal": "^2.5.0",
 		"react-native-router-flux": "^4.0.0-beta.17"
 	},
